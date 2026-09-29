@@ -321,6 +321,30 @@ def get_evaluation_report():
     return data
 
 
+@app.get("/admin-stats", tags=["Admin Dashboard"])
+def get_admin_stats():
+    """
+    Returns aggregated organization-level skill gaps, training progress, and AI model usage stats.
+    """
+    return {
+        "total_officials_evaluated": 1420,
+        "average_competency_score": 74.2,
+        "critical_skill_gaps": [
+            {"skill": "Python for Statistical Computing", "deficit": -24, "affected_count": 850},
+            {"skill": "SQL & Relational Data", "deficit": -18, "affected_count": 620},
+            {"skill": "Data Visualization (PowerBI/Tableau)", "deficit": -12, "affected_count": 410}
+        ],
+        "training_completion_rate": "68%",
+        "top_recommended_courses": [
+            "Advanced CAPI & Survey Operations (NSSTA)",
+            "Python Data Analysis for MoSPI (iGOT)",
+            "Applied Machine Learning in Demographics"
+        ],
+        "model_accuracy": "91.0%",
+        "active_deployments": "4 Regions (CSO, NSSO, DQAD, SDRD)"
+    }
+
+
 # =====================================================================
 # INTERACTIVE DEMO WEB DASHBOARD
 # =====================================================================
@@ -759,32 +783,97 @@ def get_dashboard_ui():
     }
     .metric-card .m-title { font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
     .metric-card .m-val { font-size: 24px; font-weight: 800; color: #fff; margin-top: 4px; }
+
+    /* Login Screen CSS */
+    #login-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: radial-gradient(circle at 15% 15%, #1e1b4b 0%, #0b0f19 50%, #050811 100%);
+    }
+    .login-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(16px);
+      padding: 40px;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    }
+    .login-card h2 { margin-bottom: 24px; font-size: 24px; }
+    .demo-creds {
+      background: rgba(255,255,255,0.05);
+      border: 1px dashed var(--border);
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      text-align: left;
+      line-height: 1.5;
+    }
+    .demo-creds span { color: #fff; font-weight: 600; }
   </style>
 </head>
 <body>
 
+  <div id="login-screen">
+    <div class="login-card">
+      <div class="brand-logo" style="margin: 0 auto 16px; width: 56px; height: 56px; font-size: 26px;">K</div>
+      <h2>Karma Learn Stats</h2>
+      <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">Sign in to SIH26101 Platform</p>
+      
+      <div class="demo-creds">
+        <strong>Demo Accounts:</strong><br><br>
+        Admin: <span>admin_demo</span> / <span>password123</span><br>
+        Learner: <span>learner_demo</span> / <span>password123</span>
+      </div>
+
+      <div id="login-error" style="color: #ef4444; font-size: 13px; margin-bottom: 16px; display: none;">Login failed. Please check credentials.</div>
+      
+      <form id="login-form" onsubmit="handleLogin(event)">
+        <div class="form-group" style="text-align: left;">
+          <label>Username</label>
+          <input type="text" id="login-username" class="form-control" required>
+        </div>
+        <div class="form-group" style="text-align: left;">
+          <label>Password</label>
+          <input type="password" id="login-password" class="form-control" required>
+        </div>
+        <button type="submit" class="btn" style="margin-top: 14px; padding: 12px;">Sign in</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="app-container" style="display: none;">
+
   <header>
     <div class="brand">
-      <div class="brand-logo">OSS</div>
+      <div class="brand-logo">K</div>
       <div class="brand-title">
-        <h1>AI-Powered Statistical Learning & Competency Engine</h1>
-        <p>Smart India Hackathon 2026 – Problem Statement SIH26101 | Team: Dream Weavers (AD14)</p>
+        <h1>Karma Learn Stats</h1>
+        <p>AI-Powered Statistical Learning & Competency Engine (SIH26101)</p>
       </div>
     </div>
     <div class="badges">
       <div class="pill active">System Online</div>
-      <div class="pill">MoSPI & NSSO Calibrated</div>
       <div class="pill">FastAPI ML Core</div>
+      <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px; margin-left: 10px;" onclick="logout()">Logout</button>
     </div>
   </header>
 
   <div class="container">
 
-    <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('tab-assessment')">1. Competency & Gap Analysis</button>
-      <button class="tab-btn" onclick="switchTab('tab-recommendations')">2. Training Recommendations</button>
-      <button class="tab-btn" onclick="switchTab('tab-quiz')">3. Interactive AI Quiz & Skill Update</button>
-      <button class="tab-btn" onclick="switchTab('tab-evaluation')">4. ML Model Evaluation & Metrics</button>
+    <div class="tabs" id="main-tabs">
+      <button class="tab-btn active" id="btn-tab-assessment" onclick="switchTab('tab-assessment')">1. Competency & Gap Analysis</button>
+      <button class="tab-btn" id="btn-tab-recommendations" onclick="switchTab('tab-recommendations')">2. Training Recommendations</button>
+      <button class="tab-btn" id="btn-tab-quiz" onclick="switchTab('tab-quiz')">3. Interactive AI Quiz</button>
+      <button class="tab-btn" id="btn-tab-evaluation" onclick="switchTab('tab-evaluation')">4. ML Model Evaluation</button>
+      <button class="tab-btn" id="btn-tab-admin" onclick="switchTab('tab-admin')" style="display: none; border-bottom: 2px solid var(--warning); color: var(--warning);">5. Admin Dashboard</button>
     </div>
 
     <!-- TAB 1: ASSESSMENT & GAPS -->
@@ -956,7 +1045,20 @@ def get_dashboard_ui():
       </div>
     </div>
 
-  </div>
+    <!-- TAB 5: ADMIN DASHBOARD -->
+    <div id="tab-admin" class="tab-content">
+      <div class="card">
+        <h2 style="color: var(--warning);">Administrator Dashboard Insights</h2>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">
+          Organization-wide competency metrics, top skill deficits across all departments, and AI model deployment health.
+        </p>
+        <div id="admin-dashboard-content">
+          <p style="color: var(--text-muted);">Loading admin insights...</p>
+        </div>
+      </div>
+    </div>
+
+  </div> <!-- Close app-container -->
 
   <script>
     let currentProfile = {};
@@ -1249,10 +1351,112 @@ def get_dashboard_ui():
       resEl.scrollIntoView({ behavior: 'smooth' });
     }
 
-    // Load initial demo on page load
-    window.addEventListener('DOMContentLoaded', () => {
-      loadDemo('employee_a');
-    });
+    function handleLogin(e) {
+      e.preventDefault();
+      const user = document.getElementById('login-username').value.trim();
+      const pass = document.getElementById('login-password').value;
+      const errorDiv = document.getElementById('login-error');
+      
+      if (user === 'admin_demo' && pass === 'password123') {
+        errorDiv.style.display = 'none';
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app-container').style.display = 'block';
+        
+        document.getElementById('btn-tab-admin').style.display = 'inline-block';
+        document.getElementById('btn-tab-evaluation').style.display = 'inline-block';
+        
+        loadAdminStats();
+        switchTab('tab-admin');
+      } 
+      else if (user === 'learner_demo' && pass === 'password123') {
+        errorDiv.style.display = 'none';
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app-container').style.display = 'block';
+        
+        document.getElementById('btn-tab-admin').style.display = 'none';
+        document.getElementById('btn-tab-evaluation').style.display = 'none';
+        
+        switchTab('tab-assessment');
+        loadDemo('employee_a');
+      }
+      else {
+        errorDiv.style.display = 'block';
+      }
+    }
+
+    function logout() {
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('app-container').style.display = 'none';
+      document.getElementById('login-form').reset();
+    }
+
+    async function loadAdminStats() {
+      try {
+        const res = await fetch('/admin-stats');
+        const data = await res.json();
+        const content = document.getElementById('admin-dashboard-content');
+        
+        content.innerHTML = `
+          <div class="eval-metric-box">
+            <div class="metric-card">
+              <div class="m-title">Total Officials Evaluated</div>
+              <div class="m-val">${data.total_officials_evaluated}</div>
+            </div>
+            <div class="metric-card">
+              <div class="m-title">Avg Competency Score</div>
+              <div class="m-val" style="color: #60a5fa;">${data.average_competency_score}</div>
+            </div>
+            <div class="metric-card">
+              <div class="m-title">Training Completion</div>
+              <div class="m-val" style="color: #34d399;">${data.training_completion_rate}</div>
+            </div>
+            <div class="metric-card">
+              <div class="m-title">ML Model Accuracy</div>
+              <div class="m-val" style="color: #a7f3d0;">${data.model_accuracy}</div>
+            </div>
+          </div>
+          
+          <div class="grid-2" style="margin-top: 24px;">
+            <div class="card" style="margin-bottom: 0;">
+              <h3 style="font-size: 15px; margin-bottom: 12px;">Top Organization Skill Deficits</h3>
+              <table class="gap-table">
+                <thead>
+                  <tr>
+                    <th style="text-align: left;">Skill Domain</th>
+                    <th style="text-align: center;">Avg Deficit</th>
+                    <th style="text-align: center;">Affected Staff</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${data.critical_skill_gaps.map(g => `
+                    <tr>
+                      <td>${g.skill}</td>
+                      <td style="color: #f87171; text-align: center; font-weight: bold;">${g.deficit}</td>
+                      <td style="text-align: center;">${g.affected_count}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+            <div class="card" style="margin-bottom: 0;">
+              <h3 style="font-size: 15px; margin-bottom: 12px;">Top Recommended Courses (iGOT/NSSTA)</h3>
+              <ul style="padding-left: 20px; color: var(--text-muted); font-size: 13px; line-height: 2;">
+                ${data.top_recommended_courses.map(c => `<li><strong style="color: #fff;">${c}</strong></li>`).join('')}
+              </ul>
+              <div style="margin-top: 24px; padding: 14px; background: rgba(59,130,246,0.1); border-left: 4px solid var(--primary); border-radius: 4px; font-size: 12px;">
+                <strong>Deployment Status:</strong> ${data.active_deployments}
+              </div>
+            </div>
+          </div>
+        `;
+      } catch(e) {
+        console.error("Error loading admin stats:", e);
+        document.getElementById('admin-dashboard-content').innerHTML = '<p style="color: #ef4444;">Failed to load admin insights from server.</p>';
+      }
+    }
+
+    // Do NOT load demo immediately on DOMContentLoaded if login is required.
+    // Demo is now loaded dynamically on successful login in handleLogin().
   </script>
 </body>
 </html>
